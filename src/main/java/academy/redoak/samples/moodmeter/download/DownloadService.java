@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 @Slf4j
@@ -26,8 +28,8 @@ public class DownloadService {
     private RestTemplate restTemplate;
     private DownloadRepository downloadRepository;
 
-    @Value("${academy.redoak.moodmeter.rssurl}")
-    private String rssURL;
+    @Value("${academy.redoak.moodmeter.rssurls}")
+    private List<String> rssURLs;
 
     @Value("${academy.redoak.moodmeter.cron:'(DEFAULT) 0 0 * * * *'}")
     private String cron;
@@ -40,29 +42,33 @@ public class DownloadService {
 
     @PostConstruct
     public void postConstruct() {
-        log.info("created DownloadService with: cron={}, rssURL={}", cron, rssURL);
+        log.info("created DownloadService with: cron={}, rssURL={}", cron, rssURLs);
     }
 
     @Scheduled(cron = "${academy.redoak.moodmeter.cron:0 0 * * * *}")
     public boolean doDownloads() {
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity(rssURL, String.class);
-        if (responseEntity.getStatusCode().equals(HttpStatus.OK)) {
-            log.info("download succeeded");
-            log.debug("content: '" + responseEntity.getBody() + "'");
-            DownloadEntity entity = new DownloadEntity();
-            entity.setSource(rssURL);
-            entity.setDownloadedAt(LocalDateTime.now());
-            try {
-                entity.setContent(compress(responseEntity.getBody()));
-            } catch (IOException e) {
-                log.error("failed to compress content!", e);
-                entity.setContent("ERROR".getBytes(CHARSET));
+        for (String rssURL : rssURLs) {
+            log.debug("downloading '{}'", rssURL);
+            ResponseEntity<String> responseEntity = restTemplate.getForEntity(rssURL, String.class);
+            if (responseEntity.getStatusCode().equals(HttpStatus.OK)) {
+                log.info("download succeeded");
+                log.debug("content: '" + responseEntity.getBody() + "'");
+                DownloadEntity entity = new DownloadEntity();
+                entity.setSource(rssURL);
+                entity.setDownloadedAt(LocalDateTime.now());
+                try {
+                    entity.setContent(compress(responseEntity.getBody()));
+                } catch (IOException e) {
+                    log.error("failed to compress content!", e);
+                    entity.setContent("ERROR".getBytes(CHARSET));
+                }
+                downloadRepository.save(entity);
+            } else {
+                log.warn("download failed: " + responseEntity.getStatusCode() + " with message '" + responseEntity.getBody() + "'");
+                return false;
             }
-            downloadRepository.save(entity);
-            return true;
         }
-        log.warn("download failed: " + responseEntity.getStatusCode() + " with message '" + responseEntity.getBody() + "'");
-        return false;
+        return true;
     }
 
     private byte[] compress(String string) throws IOException {
