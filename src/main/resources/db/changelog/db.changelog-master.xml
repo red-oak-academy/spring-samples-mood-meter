@@ -28,4 +28,47 @@
                           schemaName="public"
                           tableName="download"/>
     </changeSet>
+
+    <changeSet id="3" author="dec">
+        <createTable tableName="news_entry">
+            <column name="id" type="int">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="publish_date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="4" author="dec">
+        <addAutoIncrement columnDataType="int"
+                          columnName="id"
+                          schemaName="public"
+                          tableName="news_entry"/>
+    </changeSet>
+
+    <changeSet id="5" author="dec">
+        <createTable tableName="mood">
+            <column name="id" type="int">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="date" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="level" type="double">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="6" author="dec">
+        <addAutoIncrement columnDataType="int"
+                          columnName="id"
+                          schemaName="public"
+                          tableName="mood"/>
+    </changeSet>
 </databaseChangeLog>
